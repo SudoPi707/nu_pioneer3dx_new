@@ -1,0 +1,9 @@
+<launch>
+
+  <include file="$(find nu_pioneer3dx)/launch/rosaria_hokuyo.launch" />
+  <node pkg="hokuyo_node" type="hokuyo_node" name="hokuyo_node" />
+
+  <node pkg="tf" type="static_transform_publisher" name="lidar_tf" args="0.12 0 0.26 0 0 0 1 base_link laser 100" />
+  <node pkg="tf" type="static_transform_publisher" name="sonar_tf" args="0.12 0 0.26 0 0 0 1 base_link sonar 100" />
+
+</launch>

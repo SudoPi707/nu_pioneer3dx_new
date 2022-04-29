@@ -1,0 +1,11 @@
+<launch>
+  <arg name="serial_port" default="/dev/ttyUSB0" />
+  <arg name="urdf" default="$(find nu_pioneer3dx)/description/urdf/pioneer3dx_rplidar.urdf.xacro" />
+  <param name="robot_description" command="$(find xacro)/xacro --inorder $(arg urdf)" />
+  <node name="rosaria" pkg="rosaria" type="RosAria" args="_port:=$(arg serial_port)">
+    <remap from="rosaria/pose" to="odom" />
+    <remap from="rosaria/cmd_vel" to="cmd_vel" />
+  </node>
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" />
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+</launch>
