@@ -45,30 +45,28 @@ class LinearVector():
 
         return magnitude, target_yaw
 
-    def order_robot(self, obs_magnitude, goal_magnitude, final_yaw):
+    def order_robot(self, global_magnitude, local_magnitude, final_yaw):
 
-        if goal_magnitude > self.distance_torelance:
+        if local_magnitude > self.distance_torelance:
 
             goal_sigmoid = 1 / \
-                (1 + math.exp(-(goal_magnitude / self.speed_rate - self.xy_delay)))
+                (1 + math.exp(-(global_magnitude / self.speed_rate - self.xy_delay)))
             rot_sigmoid = 1 / \
                 (1 + math.exp(-(abs(final_yaw) / self.rot_rate - self.rot_delay)))
-            turn_sigmoid = 1 / (1 + math.exp(self.turn_rate * abs(obs_magnitude) - self.turn_delay))
+            turn_sigmoid = 1 / (1 + math.exp(self.turn_rate * abs(final_yaw) - self.turn_delay))
 
             yaw_sign = final_yaw / abs(final_yaw)  # return 1 or -1
 
-            vel_x = self.max_xy_speed * goal_sigmoid
+            pre_vel_x = self.max_xy_speed
 
-            if abs(final_yaw) > math.pi / 2:  # If yaw is greater than yaw torelance
+            if abs(final_yaw) > self.yaw_torelance:  # If yaw is greater than yaw torelance
 
-                vel_x = (vel_x - self.min_turn_speed) *  turn_sigmoid + self.min_turn_speed
+                vel_x = pre_vel_x * turn_sigmoid + self.min_turn_speed
 
                 rot_z = yaw_sign * self.max_rot_speed * rot_sigmoid
 
-                print(abs(final_yaw) * 180 / math.pi, vel_x)
-
             else:   # If yaw is less than yaw torelance, but not reached the goal yet.
-                vel_x = vel_x
+                vel_x = pre_vel_x
                 rot_z = 0
         else:
             vel_x = 0
@@ -78,8 +76,6 @@ class LinearVector():
             self.twist_pub.publish(twist)
 
             return True
-
-        # print(vel_x)
 
         twist = Twist(Vector3(vel_x, 0, 0), Vector3(0, 0, rot_z))
         self.twist_pub.publish(twist)

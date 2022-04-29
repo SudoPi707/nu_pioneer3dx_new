@@ -3,7 +3,7 @@ import rospy
 import sys
 
 from robot_position import RobotPosition
-from vector_calculation import LinearVector
+from vector_calculation_waypoint import LinearVector
 from make_plan import MakePlan
 
 
@@ -12,7 +12,6 @@ class ObstacleAvoidant:
     def __init__(self):
 
         self.obs_force_scale = 0.4  # The larger, the more distance from robot to obstacle
-        self.obs_max_distance = 3
         self.global_percent = 0.1
         self.local_percent = 1 - self.global_percent
         self.obs_max_distance = 3
@@ -95,13 +94,14 @@ if __name__ == "__main__":
 
             # Common configuration for gazebo simulation
             program.obs_force_scale = 0.3
-            program.global_percent = 0.1
-            program.local_percent = 0.9
+            program.global_percent = 0.5
+            program.local_percent = 0.5
             program.obs_max_distance = 3
             vector.max_xy_speed = 0.5
             vector.max_rot_speed = 0.5
             vector.min_turn_speed = 0.00
             vector.turn_rate = 2
+            vector.distance_torelance = 0.5
 
 	    # For real world
         elif sys.argv[2] == "real":
@@ -115,6 +115,7 @@ if __name__ == "__main__":
             vector.max_rot_speed = 0.4
             vector.min_turn_speed = 0.00
             vector.turn_rate = 3
+            vector.distance_torelance = 0.5
 
             if sys.argv[1] == "rplidar":
                 from get_rplidar import SensorValue
@@ -145,11 +146,16 @@ if __name__ == "__main__":
 
             plan_array = make_plan.get_plan(goal_x, goal_y)
 
-            step = 50
-            waypoint = [plan_array[i] for i in range(0, len(plan_array), step)]
+            step = 25
+            waypoint = [plan_array[i] for i in range(step, len(plan_array), step)]
             waypoint.append(plan_array[len(plan_array)-1])
 
+            is_final_point = False
+
             for i in range(len(waypoint)):
+
+                if i == len(waypoint) - 1:
+                    is_final_point = True
 
                 pos_x = waypoint[i].pose.position.x
                 pos_y = waypoint[i].pose.position.y
@@ -167,7 +173,7 @@ if __name__ == "__main__":
 
                     final_yaw = vector.get_move_radian(target_yaw, robot)
 
-                    finished = vector.order_robot(obs_magnitude, goal_magnitude, final_yaw)
+                    finished = vector.order_robot(goal_magnitude, final_yaw, is_final_point)
 
                     rospy.sleep(0.1)
 

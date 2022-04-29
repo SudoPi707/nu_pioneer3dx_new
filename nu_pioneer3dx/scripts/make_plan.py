@@ -21,7 +21,7 @@ class MakePlan():
             make_plan = rospy.ServiceProxy("/move_base/NavfnROS/make_plan", GetPlan)
 
             amcl_sub = rospy.Subscriber("amcl_pose", PoseWithCovarianceStamped, self.set_robot_pose)
-            rospy.sleep(1)
+            # rospy.sleep(0.1)
             amcl_sub.unregister()
 
             ctime = rospy.get_rostime()

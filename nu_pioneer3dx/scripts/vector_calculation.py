@@ -11,17 +11,17 @@ class LinearVector():
 
         self.max_xy_speed = 0.5
         self.max_rot_speed = 0.5
-        self.min_turn_speed = 0.1  # Turn is the speed of x according to z
+        self.min_turn_speed = 0.00  # Turn is the speed of x according to z
 
         # The lesser, the rotate is much faster but never exceed the rot speed
         self.rot_rate = 0.3
         self.speed_rate = 0.5
-        self.turn_rate = 6.5
+        self.turn_rate = 2
         self.xy_delay = 0.5
         self.rot_delay = 2
-        self.turn_delay = 5.5
+        self.turn_delay = 3
 
-        self.distance_torelance = 0.3
+        self.distance_torelance = 0.5
         self.yaw_torelance = math.pi / 16
 
         self.twist_pub = rospy.Publisher("cmd_vel", Twist, queue_size=1)
@@ -45,7 +45,7 @@ class LinearVector():
 
         return magnitude, target_yaw
 
-    def order_robot(self, magnitude, goal_magnitude, final_yaw):
+    def order_robot(self, obs_magnitude, goal_magnitude, final_yaw):
 
         if goal_magnitude > self.distance_torelance:
 
@@ -53,20 +53,20 @@ class LinearVector():
                 (1 + math.exp(-(goal_magnitude / self.speed_rate - self.xy_delay)))
             rot_sigmoid = 1 / \
                 (1 + math.exp(-(abs(final_yaw) / self.rot_rate - self.rot_delay)))
-            turn_sigmoid = (1-(self.min_turn_speed / self.max_xy_speed)) / \
-                (1 + math.exp(self.turn_rate * abs(final_yaw) - self.turn_delay))
+            turn_sigmoid = 1 / (1 + math.exp(self.turn_rate * abs(obs_magnitude) - self.turn_delay))
 
             yaw_sign = final_yaw / abs(final_yaw)  # return 1 or -1
 
+            vel_x = self.max_xy_speed * goal_sigmoid
+
             if abs(final_yaw) > self.yaw_torelance:  # If yaw is greater than yaw torelance
 
-                vel_x = (self.max_xy_speed * turn_sigmoid) + \
-                    self.min_turn_speed
+                vel_x = (vel_x - self.min_turn_speed) *  turn_sigmoid + self.min_turn_speed
 
                 rot_z = yaw_sign * self.max_rot_speed * rot_sigmoid
 
             else:   # If yaw is less than yaw torelance, but not reached the goal yet.
-                vel_x = self.max_xy_speed * goal_sigmoid
+                vel_x = vel_x
                 rot_z = 0
         else:
             vel_x = 0
@@ -77,8 +77,9 @@ class LinearVector():
 
             return True
 
-        twist = Twist(Vector3(vel_x, 0, 0), Vector3(0, 0, rot_z))
+        # print(vel_x)
 
+        twist = Twist(Vector3(vel_x, 0, 0), Vector3(0, 0, rot_z))
         self.twist_pub.publish(twist)
 
         return False
